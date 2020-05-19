@@ -1,0 +1,29 @@
+body {
+  font-family: "Arial";
+}
+
+#board{
+    text-align: "center";
+}
+
+.board-square{
+  height: 80px;
+  width: 80px;
+  background-color: #717572;
+}
+
+.board-spacer{
+
+}
+
+.board-repeat{
+  background-color: #4e524f;
+}
+
+.piece{
+  height: 75%;
+  width: 75%;
+  margin: 12.5%;
+  border-radius: 50%;
+  background-color: white;
+}
