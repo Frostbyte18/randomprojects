@@ -9,12 +9,18 @@
 
   <link rel="stylesheet" href="css/styles.css">
   <title>Ur-Online</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
 </head>
 
 <body>
   <h1>The Royal Game of Ur</h1>
-    <table id="board">
+    <div id="lobby">
+      <button id="join-game">Click Button to join game</button>
+      <div id="server-message"></div>
+    </div>
+
+    <table id="board" hidden>
       <tr>
         <th class="board-square board-repeat" id="test"></th>
         <th class="board-square"></th>

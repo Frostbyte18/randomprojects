@@ -1,8 +1,26 @@
 var socket = io();
+var actualPlayer = ""; //While player will always play from 1 perspective, they will in reality be either 1 or 0
 
-socket.on('test', text => {
-  alert(text);
+socket.on('test', response => {
+  console.log(JSON.parse(response));
 });
+
+socket.on("server-message", response => {
+  document.getElementById("server-message").innerHTML = response;
+  console.log(response);
+});
+
+socket.on("start-game", response => {
+  //Response will be a 1 or a 0;
+  actualPlayer = parseInt(reesponse);
+  if(actualPlayer == 0){
+    requestTurn();
+  }
+});
+
+function requestTurn(){
+  
+}
 
 //Variables to be setup later in code
 let teamColors = ["red", "blue"];
