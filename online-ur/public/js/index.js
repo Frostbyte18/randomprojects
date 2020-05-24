@@ -1,5 +1,8 @@
+//
+//SERVER FUNCTIONS & COMMUNICATION
+//
+/*
 var socket = io();
-var actualPlayer = ""; //While player will always play from 1 perspective, they will in reality be either 1 or 0
 
 socket.on('test', response => {
   console.log(JSON.parse(response));
@@ -19,74 +22,119 @@ socket.on("start-game", response => {
 });
 
 function requestTurn(){
-  
+
 }
 
-//Variables to be setup later in code
-let teamColors = ["red", "blue"];
-//Team 0 is opponent, Team 1 is player
-let boardLists;
-let boardState = {0:{0:"N",1:"N",2:"N",3:"N",12:"N",13:"N"}, 1:{0:"N",1:"N",2:"N",3:"N",12:"N",13:"N"}, "N": {4:"N",5:"N",6:"N",7:"N",8:"N",9:"N",10:"N",11:"N",}}
-let rows = document.getElementById("board").children[0].children;
+function requestGame(){
+  socket.emit("request-game", "requesting game");
+}
 
-function createBoardList(team){
-  //Creates a list that refrence the indivual divs of the board for a given team (for easy refrence in other functions)
-  aReturn = [];
-  for(let i = 0; i < 14; i++){
-    if(i < 4){ //First four squares, 0-3
-      aReturn.push(rows[team*2].children[3-i]);
-    } else if (i > 11) { //Last two squares, 12-13
-      aReturn.push(rows[team*2].children[19-i]);
-    } else { //Middle eight squares, 4-11
-      aReturn.push(rows[1].children[i-4]);
+function compressGame(){
+  //for
+}
+*/
+
+//
+//GAME FUNCTIONS
+//
+//Player will be assigned A or B which is common to both players However, both teams will play from team 1's perspective
+var playingTeam = "A";
+
+class Board {
+  constructor(playingTeam) {
+    this.playingTeam = playingTeam; //A or B
+    this.rows = document.getElementById("board").children[0].children;
+    this.list = [this.createBoardList(0), this.createBoardList(1), this.createBoardList(2)];
+    this.teamColors = ["blue", "yellow"];
+  }
+
+  createBoardList(team){
+    //Creates a list that refrence the indivual divs of the board for a given team (for easy refrence in other functions)
+    let a = [];
+    if(team < 2){
+      for(let i = 0; i < 14; i++){
+        if(i < 4){ //First four squares, 0-3
+          a.push(this.rows[team*2].children[3-i]);
+        } else if (i > 11) { //Last two squares, 12-13
+          a.push(this.rows[team*2].children[19-i]);
+        } else { //Middle eight squares, 4-11
+          a.push(this.rows[1].children[i-4]);
+        }
+      }
+    }
+    if(team == 2){
+      for(let i = 0; i < 3; i++){
+        for(const square of this.rows[i].children){
+            //Determine whether it's term A, B, or N
+            a.push(square);
+        }
+      }
+    }
+    return(a);
+  }
+
+  determineLocation(e){
+    return this.list[0].indexOf(e) > -1 ? this.list[0].indexOf(e) : (this.list[1].indexOf(e) > -1 ? this.list[1].indexOf(e) : -1);
+  }
+
+  determineTeam(e){
+    if(this.determineLocation(e) > 3 && this.determineLocation(e) < 12){
+      return "N";
+    } else{
+      return this.list[0].indexOf(e) > -1 ? 0 : (this.list[1].indexOf(e) > -1 ? 1 : -1);
     }
   }
-  return(aReturn);
-}
-//Create boardLists
-boardLists = [createBoardList(0), createBoardList(1)];
 
-function resetBoard(){
-  //Square state can be 0,1,or N (neutral)
+  placePiece(team, location){
+    //Location will be 0-23
+    //Create newPiece html element
+    let newPiece = document.createElement("div");
+    newPiece.className = "piece";
+    newPiece.style.backgroundColor = this.teamColors[team];
+
+    document.getElementById("board").children[0].children[Math.floor(location/8)].children[location - Math.floor(location/8)*8].appendChild(newPiece);
+  }
+
+  summarize(){ //Returns board summary (3x8 => 1x24)
+    let a = [];
+    let i = 0;
+    for(let i = 0; i < 3; i++){
+      for(const square of this.rows[i].children){
+          //Determine whether it's term A, B, or N
+          a.push(typeof square.children[0] == "undefined" ? "N" :
+          ["B", "A"][this.teamColors.indexOf(square.children[0].style["background-color"])]);
+      }
+    }
+    return a;
+  }
+
+  resetBoard(){
+    //Square state can be 0,1,or N (neutral)
+  }
 }
+
+//Create boardLists
+var board = new Board(playingTeam);
+
+
 resetBoard();
 
-function placePiece(team, location){
-  //Location 0-13
 
-  //Create newPiece html element
-  newPiece = document.createElement("div");
-  newPiece.className = "piece";
-  newPiece.style.backgroundColor = teamColors[team];
-  boardLists[team][location].appendChild(newPiece);
-}
 
 function pieceClicked(location){
 
 }
 
-function determineBoardLocation(e){
-  return boardLists[0].indexOf(e) > -1 ? boardLists[0].indexOf(e) : (boardLists[1].indexOf(e) > -1 ? boardLists[1].indexOf(e) : -1);
-}
 
-function determineBoardTeam(e){
-  if(determineBoardLocation(e) > 3 && determineBoardLocation(e) < 12){
-    return "N";
-  } else{
-    return boardLists[0].indexOf(e) > -1 ? 0 : (boardLists[1].indexOf(e) > -1 ? 1 : -1);
-  }
-}
 
 function setState(team, location, state){
-  boardState[team][location] = state;
-  placePiece(team, location);
-  console.log(boardState);
+  board.placePiece(team, location);
 }
 
 document.getElementById("board").addEventListener("click", boardPressed);
 
 function tempFunction(elem){
-  setState(0, determineBoardLocation(elem));
+  setState(1, board.determineLocation(elem));
 }
 
 function boardPressed(event){

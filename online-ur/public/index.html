@@ -15,14 +15,25 @@
 
 <body>
   <h1>The Royal Game of Ur</h1>
-    <div id="lobby">
-      <button id="join-game">Click Button to join game</button>
+    <div id="lobby" hidden>
+      <button id="join-game" onclick="requestGame">Click To Join A Game</button>
       <div id="server-message"></div>
     </div>
 
-    <table id="board" hidden>
+    <table id="opponent-magazine">
       <tr>
-        <th class="board-square board-repeat" id="test"></th>
+        <th class="magazine-piece"></th>
+        <th class="magazine-piece"></th>
+        <th class="magazine-piece"></th>
+        <th class="magazine-piece"></th>
+        <th class="magazine-piece"></th>
+        <th class="magazine-piece"></th>
+        <th class="magazine-piece"></th>
+      </tr>
+    </table>
+    <table id="board">
+      <tr>
+        <th class="board-square board-repeat"></th>
         <th class="board-square"></th>
         <th class="board-square"></th>
         <th class="board-square"></th>
@@ -50,6 +61,17 @@
         <th class="board-spacer"></th>
         <th class="board-square board-repeat"></th>
         <th class="board-square"></th>
+      </tr>
+    </table>
+    <table id="self-magazine">
+      <tr>
+        <th class="magazine-piece"></th>
+        <th class="magazine-piece"></th>
+        <th class="magazine-piece"></th>
+        <th class="magazine-piece"></th>
+        <th class="magazine-piece"></th>
+        <th class="magazine-piece"></th>
+        <th class="magazine-piece"></th>
       </tr>
     </table>
     <script type="text/javascript" src="js/index.js"></script>

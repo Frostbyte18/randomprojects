@@ -12,6 +12,10 @@ app.use(express.static('public'));
 const io = require('socket.io')(http);
 const serverNamespace = io.of("/")
 
+http.listen(3000, () => {
+  console.log(`listening on *:${port}`);
+});
+
 // https://socket.io/docs/emit-cheatsheet/
 var readySockets = []
 var lobbySockets = []
@@ -36,6 +40,6 @@ io.on('connection', socket => {
   });
 });
 
-http.listen(3000, () => {
-  console.log(`listening on *:${port}`);
+io.on("request-game", message =>{
+  console.log(message);
 });

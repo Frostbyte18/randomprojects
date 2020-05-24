@@ -27,3 +27,10 @@ body {
   border-radius: 50%;
   background-color: white;
 }
+
+.magazine-piece{
+  height: 45px;
+  width: 45px;
+  border-radius: 50%;
+  background-color: grey;
+}
