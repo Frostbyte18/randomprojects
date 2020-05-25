@@ -54,12 +54,13 @@ class Board {
 
     //Gameplay mechanics
     this.playingTeam = playingTeam; //A or B
-    this.currentGuides = [];
+    this.currentRoll = 2;
+    this.turnState = 1;
 
     //Board logistics
     this.magazines = [document.getElementById("opponent-magazine").children[0].children[0], document.getElementById("self-magazine").children[0].children[0]];
     this.rows = Array.from(document.getElementById("board").children[0].children);
-    this.list = [this.createList(0), this.createList(1)];
+    this.lists = [this.createList(0), this.createList(1)];
     this.masterList = this.createList(2);
   }
 
@@ -88,7 +89,7 @@ class Board {
     return(a);
   }
 
-  determineLocation(e){ //Location 0-23
+  detLocation(e){ //Location 0-23
     return this.masterList.indexOf(e);
   }
 
@@ -101,20 +102,21 @@ class Board {
     this.masterList[location].appendChild(newPiece);
   }
 
-  placeGuide(team, location){
+  //Determines which team holds a square (1, 0, or N)
+  detTeam(location){
     //Location 0-23
-    //Places smaller dot that shows plater where they can go
-  }
-
-  placeAllGuides(team, from, roll){
-    //Places all possible guides given a rolled number and position
-    for(let i = 0; i < roll; i++){
-
+    if(this.masterList[location].children.length == 0){
+      return "N";
+    } else{
+      return this.teamColors.indexOf(this.masterList[location].children[0].style["background-color"]);
     }
   }
 
-  clearAllGuides(team, from, roll){
+  //Places smaller dot that shows plater where they can go
+  placeGuide(team, location, roll){
+    //Location 0-23
 
+    //Only places a dot if it's the right player
   }
 
   clearLocation(location){
@@ -172,15 +174,27 @@ class Board {
       }
     }
   }
+
+  onBoardClick(){
+    if(this.turnState == 1){
+      //Waiting
+    } else if (this.turnState == 2) {
+      //Playing
+    }
+  }
 }
 
 document.getElementById("board").addEventListener("click", (event) => {
   if(event.target.className.indexOf("board-square") > -1){
 
   } else if (event.target.className == "piece"){
-
+    //Show Guides
+  } else if (event.target.className == "guide") {
+    //Confirm move
   }
 });
+
+document.getElementById("")
 
 var board = new Board(playingTeam);
 board.resetBoard();
