@@ -28,6 +28,14 @@ body {
   background-color: white;
 }
 
+.guide{
+  height: 50%;
+  width: 50%;
+  margin: 25%;
+  border-radius: 50%;
+  background-color: white;
+}
+
 .magazine-piece{
   height: 45px;
   width: 45px;

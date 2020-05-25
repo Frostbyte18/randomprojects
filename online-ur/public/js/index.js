@@ -40,15 +40,30 @@ function compressGame(){
 //Player will be assigned A or B which is common to both players However, both teams will play from team 1's perspective
 var playingTeam = "A";
 
+function fixColor(color){
+  let p = document.createElement("div");
+  p.style.backgroundColor = color;
+  return p.style.backgroundColor;
+}
+
 class Board {
   constructor(playingTeam) {
+    //Game configuration
+    this.teamColors = [fixColor("#00008B"), fixColor("#8B0000")];
+    this.pieceNumber = 7;
+
+    //Gameplay mechanics
     this.playingTeam = playingTeam; //A or B
-    this.rows = document.getElementById("board").children[0].children;
-    this.list = [this.createBoardList(0), this.createBoardList(1), this.createBoardList(2)];
-    this.teamColors = ["blue", "yellow"];
+    this.currentGuides = [];
+
+    //Board logistics
+    this.magazines = [document.getElementById("opponent-magazine").children[0].children[0], document.getElementById("self-magazine").children[0].children[0]];
+    this.rows = Array.from(document.getElementById("board").children[0].children);
+    this.list = [this.createList(0), this.createList(1)];
+    this.masterList = this.createList(2);
   }
 
-  createBoardList(team){
+  createList(team){
     //Creates a list that refrence the indivual divs of the board for a given team (for easy refrence in other functions)
     let a = [];
     if(team < 2){
@@ -73,74 +88,100 @@ class Board {
     return(a);
   }
 
-  determineLocation(e){
-    return this.list[0].indexOf(e) > -1 ? this.list[0].indexOf(e) : (this.list[1].indexOf(e) > -1 ? this.list[1].indexOf(e) : -1);
-  }
-
-  determineTeam(e){
-    if(this.determineLocation(e) > 3 && this.determineLocation(e) < 12){
-      return "N";
-    } else{
-      return this.list[0].indexOf(e) > -1 ? 0 : (this.list[1].indexOf(e) > -1 ? 1 : -1);
-    }
+  determineLocation(e){ //Location 0-23
+    return this.masterList.indexOf(e);
   }
 
   placePiece(team, location){
-    //Location will be 0-23
+    //Location 0-23
     //Create newPiece html element
     let newPiece = document.createElement("div");
     newPiece.className = "piece";
-    newPiece.style.backgroundColor = this.teamColors[team];
+    newPiece.style["background-color"] = this.teamColors[team];
+    this.masterList[location].appendChild(newPiece);
+  }
 
-    document.getElementById("board").children[0].children[Math.floor(location/8)].children[location - Math.floor(location/8)*8].appendChild(newPiece);
+  placeGuide(team, location){
+    //Location 0-23
+    //Places smaller dot that shows plater where they can go
+  }
+
+  placeAllGuides(team, from, roll){
+    //Places all possible guides given a rolled number and position
+    for(let i = 0; i < roll; i++){
+
+    }
+  }
+
+  clearAllGuides(team, from, roll){
+
+  }
+
+  clearLocation(location){
+    //Number 0-23
+    this.masterList[location].innerHTML = "";
   }
 
   summarize(){ //Returns board summary (3x8 => 1x24)
     let a = [];
     let i = 0;
-    for(let i = 0; i < 3; i++){
-      for(const square of this.rows[i].children){
+    for(const row in this.rows){
+      for(const square of this.rows[row].children){
           //Determine whether it's term A, B, or N
-          a.push(typeof square.children[0] == "undefined" ? "N" :
-          ["B", "A"][this.teamColors.indexOf(square.children[0].style["background-color"])]);
+          if(typeof square.children[0] == "undefined"){
+            a.push("N");
+          } else{
+            a.push(["B", "A"][this.teamColors.indexOf(square.children[0].style["background-color"])]);
+          }
       }
     }
     return a;
   }
 
+  update(summary){
+    //Summary is 24 item array
+    this.clearBoard();
+    for(const s in summary){
+      if(summary[s] != "N"){
+        this.placePiece(summary[s] == this.playingTeam ? 1 : 0, s);
+      }
+    }
+  }
+
+  clearBoard(){
+    for(const row in this.rows){
+      for(const square of this.rows[row].children){
+        square.innerHTML = "";
+      }
+    }
+  }
+
   resetBoard(){
-    //Square state can be 0,1,or N (neutral)
+    //Reset board
+    this.clearBoard();
+    //Reset magazines
+    board.magazines[0].innerHTML = "";
+    board.magazines[1].innerHTML = "";
+    let newPiece;
+    for(let i = 0; i < 2; i++){
+      for(let j = 0; j < this.pieceNumber; j++){
+        newPiece = document.createElement("th");
+        newPiece.className = "magazine-piece";
+        newPiece.style["background-color"] = this.teamColors[i]
+        board.magazines[i].appendChild(newPiece);
+      }
+    }
   }
 }
 
-//Create boardLists
-var board = new Board(playingTeam);
-
-
-resetBoard();
-
-
-
-function pieceClicked(location){
-
-}
-
-
-
-function setState(team, location, state){
-  board.placePiece(team, location);
-}
-
-document.getElementById("board").addEventListener("click", boardPressed);
-
-function tempFunction(elem){
-  setState(1, board.determineLocation(elem));
-}
-
-function boardPressed(event){
+document.getElementById("board").addEventListener("click", (event) => {
   if(event.target.className.indexOf("board-square") > -1){
-    tempFunction(event.target);
+
   } else if (event.target.className == "piece"){
 
   }
-}
+});
+
+var board = new Board(playingTeam);
+board.resetBoard();
+board.update(["B", "N", "N", "B", "N", "N", "N", "B", "A", "B", "B", "A", "N", "N", "N", "A", "N", "A", "N", "N", "N", "N", "N", "A"])
