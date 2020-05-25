@@ -49,19 +49,21 @@ function fixColor(color){
 class Board {
   constructor(playingTeam) {
     //Game configuration
-    this.teamColors = [fixColor("#00008B"), fixColor("#8B0000")];
+    //this.teamColors = [fixColor("#00008B"), fixColor("#8B0000")];
+    this.teamColors = [fixColor("blue"), fixColor("red")];
     this.pieceNumber = 7;
 
     //Gameplay mechanics
     this.playingTeam = playingTeam; //A or B
-    this.currentRoll = 2;
-    this.turnState = 1;
+    this.currentRoll = 5;
+    this.turnState = 2;
 
     //Board logistics
     this.magazines = [document.getElementById("opponent-magazine").children[0].children[0], document.getElementById("self-magazine").children[0].children[0]];
     this.rows = Array.from(document.getElementById("board").children[0].children);
     this.lists = [this.createList(0), this.createList(1)];
     this.masterList = this.createList(2);
+    this.currentGuide = -1;
   }
 
   createList(team){
@@ -105,18 +107,50 @@ class Board {
   //Determines which team holds a square (1, 0, or N)
   detTeam(location){
     //Location 0-23
-    if(this.masterList[location].children.length == 0){
+    let pieces = this.masterList[location].getElementsByClassName("piece");
+    if(pieces.length == 0){
       return "N";
-    } else{
-      return this.teamColors.indexOf(this.masterList[location].children[0].style["background-color"]);
+    } else {
+      return this.teamColors.indexOf(pieces[0].style["background-color"]);
+    }
+  }
+
+  clearCurrentGuide(){
+    if(this.currentGuide != -1){
+      if(this.detTeam(this.currentGuide) == 0){
+        this.masterList[this.currentGuide].children[0].innerHTML = "";
+      } else if(this.detTeam(this.currentGuide) == "N"){
+        this.masterList[this.currentGuide].innerHTML = ""
+      }
     }
   }
 
   //Places smaller dot that shows plater where they can go
-  placeGuide(team, location, roll){
+  placeGuide(location, roll){
     //Location 0-23
+    this.clearCurrentGuide();
+    if(location == -1 || this.detTeam(location) == 1){
+      //Correct team clicked
+      let guideLocation = this.masterList.indexOf(this.lists[1][this.lists[1].indexOf(this.masterList[location]) + roll]);
+      this.currentGuide = guideLocation;
 
-    //Only places a dot if it's the right player
+      let guidePiece = document.createElement("div");
+      guidePiece.style["background-color"] = this.teamColors[1];
+
+      //Only places a dot if it's the right player
+      if(this.detTeam(guideLocation) == 1){
+        //Can't place guide there, same team
+        this.currentGuide = -1;
+      } else if(this.detTeam(guideLocation) == 0){
+        //Placing guide on opponent's piece
+        guidePiece.className = "guide-opp";
+        this.masterList[guideLocation].children[0].appendChild(guidePiece);
+      } else if(this.detTeam(guideLocation) == "N"){
+        //Placing guide on open square
+        guidePiece.className = "guide-self";
+        this.masterList[guideLocation].appendChild(guidePiece);
+      }
+    }
   }
 
   clearLocation(location){
@@ -175,12 +209,8 @@ class Board {
     }
   }
 
-  onBoardClick(){
-    if(this.turnState == 1){
-      //Waiting
-    } else if (this.turnState == 2) {
-      //Playing
-    }
+  makeMove(location){
+    //Make a move to a spot with a given guide
   }
 }
 
@@ -188,13 +218,16 @@ document.getElementById("board").addEventListener("click", (event) => {
   if(event.target.className.indexOf("board-square") > -1){
 
   } else if (event.target.className == "piece"){
-    //Show Guides
+    //Show Guide
+    board.placeGuide(board.detLocation(event.target.parentNode), board.currentRoll);
   } else if (event.target.className == "guide") {
     //Confirm move
   }
 });
 
-document.getElementById("")
+document.getElementById("self-magazine").addEventListener("click", (event) => {
+  board.placeGuide(-1, board.currentRoll);
+});
 
 var board = new Board(playingTeam);
 board.resetBoard();
