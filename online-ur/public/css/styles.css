@@ -13,7 +13,9 @@ body {
 }
 
 .board-spacer{
-
+  height: 80px;
+  width: 80px;
+  background-color: #ffffff;
 }
 
 .board-repeat{

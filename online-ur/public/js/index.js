@@ -29,9 +29,6 @@ function requestGame(){
   socket.emit("request-game", "requesting game");
 }
 
-function compressGame(){
-  //for
-}
 */
 
 //
@@ -55,15 +52,18 @@ class Board {
 
     //Gameplay mechanics
     this.playingTeam = playingTeam; //A or B
-    this.currentRoll = 5;
+    this.currentRoll = 2;
     this.turnState = 2;
+    this.score = [0,0]
 
     //Board logistics
     this.magazines = [document.getElementById("opponent-magazine").children[0].children[0], document.getElementById("self-magazine").children[0].children[0]];
     this.rows = Array.from(document.getElementById("board").children[0].children);
     this.lists = [this.createList(0), this.createList(1)];
     this.masterList = this.createList(2);
+    this.repeatSquares = [16, 11, 22];
     this.currentGuide = -1;
+    this.currentClick = -1;
   }
 
   createList(team){
@@ -133,12 +133,24 @@ class Board {
       //Correct team clicked
       let guideLocation = this.masterList.indexOf(this.lists[1][this.lists[1].indexOf(this.masterList[location]) + roll]);
       this.currentGuide = guideLocation;
+      this.currentClick = location;
 
       let guidePiece = document.createElement("div");
       guidePiece.style["background-color"] = this.teamColors[1];
 
-      //Only places a dot if it's the right player
-      if(this.detTeam(guideLocation) == 1){
+      //Only places a dot if it's valid
+      if(guideLocation == -1){
+        //Trying to go too far
+        let clickLocation = this.lists[1].indexOf(this.masterList[this.currentClick]);
+        if(clickLocation + roll == 14){
+          //Check to see if piece can score
+          guidePiece.className = "guide-self";
+          this.masterList[21].appendChild(guidePiece);
+          this.currentGuide = 24;
+        } else{
+          this.currentGuide = -1;
+        }
+      } else if(this.detTeam(guideLocation) == 1){
         //Can't place guide there, same team
         this.currentGuide = -1;
       } else if(this.detTeam(guideLocation) == 0){
@@ -176,31 +188,34 @@ class Board {
 
   update(summary){
     //Summary is 24 item array
-    this.clearBoard();
+    this.resetBoard();
     for(const s in summary){
       if(summary[s] != "N"){
-        this.placePiece(summary[s] == this.playingTeam ? 1 : 0, s);
+        let team = summary[s] == this.playingTeam ? 1 : 0;
+        this.placePiece(team, s);
+        //Remove one piece from magazine
+        this.magazines[team].removeChild(this.magazines[team].children[0]);
       }
     }
   }
 
-  clearBoard(){
+  updateScore(){
+
+  }
+
+  resetBoard(){
+    //Clear board tiles
     for(const row in this.rows){
       for(const square of this.rows[row].children){
         square.innerHTML = "";
       }
     }
-  }
-
-  resetBoard(){
-    //Reset board
-    this.clearBoard();
     //Reset magazines
     board.magazines[0].innerHTML = "";
     board.magazines[1].innerHTML = "";
     let newPiece;
     for(let i = 0; i < 2; i++){
-      for(let j = 0; j < this.pieceNumber; j++){
+      for(let j = 0; j < this.pieceNumber - this.score[i]; j++){
         newPiece = document.createElement("th");
         newPiece.className = "magazine-piece";
         newPiece.style["background-color"] = this.teamColors[i]
@@ -209,8 +224,30 @@ class Board {
     }
   }
 
-  makeMove(location){
-    //Make a move to a spot with a given guide
+  makeMove(){
+    //Make a move to a spot selected guide
+    if(this.currentGuide == 24){
+      //Scoring move
+      this.clearLocation(this.currentClick);
+      this.masterList[21].innerHTML = "";
+      this.score[1] += 1;
+      this.currentGuide = -1;
+    } else {
+      //Normal move
+      this.clearLocation(this.currentGuide);
+      if(this.currentClick != -1){
+        this.clearLocation(this.currentClick);
+      }
+      this.placePiece(1, this.currentGuide);
+      this.update(this.summarize()); //Fix magazines
+    }
+
+    //Either end turn or request new move
+    if(this.repeatSquares.indexOf(this.currentGuide) != -1){
+      //Request new move
+    } else {
+      //End turn
+    }
   }
 }
 
@@ -220,8 +257,8 @@ document.getElementById("board").addEventListener("click", (event) => {
   } else if (event.target.className == "piece"){
     //Show Guide
     board.placeGuide(board.detLocation(event.target.parentNode), board.currentRoll);
-  } else if (event.target.className == "guide") {
-    //Confirm move
+  } else if (event.target.className == "guide-self" || event.target.className == "guide-opp") {
+    board.makeMove();
   }
 });
 
@@ -231,4 +268,5 @@ document.getElementById("self-magazine").addEventListener("click", (event) => {
 
 var board = new Board(playingTeam);
 board.resetBoard();
-board.update(["B", "N", "N", "B", "N", "N", "N", "B", "A", "B", "B", "A", "N", "N", "N", "A", "N", "A", "N", "N", "N", "N", "N", "A"])
+//Arbitrary board setup for testing
+//board.update(["B", "N", "N", "B", "N", "N", "N", "B", "A", "B", "B", "A", "N", "N", "N", "A", "N", "A", "N", "N", "N", "N", "N", "A"])
