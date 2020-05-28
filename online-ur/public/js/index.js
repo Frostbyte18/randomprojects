@@ -1,40 +1,56 @@
 //
 //SERVER FUNCTIONS & COMMUNICATION
 //
-/*
 var socket = io();
 
-socket.on('test', response => {
-  console.log(JSON.parse(response));
+class Game {
+  //This is the game from a player's perspective
+  //Game is created when the document is loaded, but not started until confirmation is received from server
+  constructor(playingTeam){
+    this.hasStarted = false;
+    this.myTurn = false;
+    this.playingTeam = playingTeam;
+    this.board = new Board(this.playingTeam);
+    this.board.resetBoard();
+  }
+
+  startGame(actualPlayer){
+    this.actualPlayer = actualPlayer;
+    this.hasStarted = true;
+    document.getElementById("main-playing-div").style.visibility = "visible";
+  }
+
+  startTurn(roll, state){
+    this.myTurn = true;
+    this.board.currentRoll = roll[0];
+    this.board.update(state);
+  }
+
+  finishTurn(){
+      socket.emit("made-turn", [game.board.summarize]);
+  }
+}
+
+socket.on("start-game", (response) => {
+  //Response will be a A or a B
+  game.startGame(response);
+  socket.emit("confirm-playing"); //Allow server to assign game id
+});
+
+socket.on("start-turn", response => {
+  game.startTurn(response[0], response[1]);
 });
 
 socket.on("server-message", response => {
   document.getElementById("server-message").innerHTML = response;
-  console.log(response);
 });
-
-socket.on("start-game", response => {
-  //Response will be a 1 or a 0;
-  actualPlayer = parseInt(reesponse);
-  if(actualPlayer == 0){
-    requestTurn();
-  }
-});
-
-function requestTurn(){
-
-}
-
-function requestGame(){
-  socket.emit("request-game", "requesting game");
-}
-
-*/
 
 //
 //GAME FUNCTIONS
 //
-//Player will be assigned A or B which is common to both players However, both teams will play from team 1's perspective
+
+//Player will be assigned A or B which is common to both players
+//However, both teams will play from team 1's perspective
 var playingTeam = "A";
 
 function fixColor(color){
@@ -54,7 +70,7 @@ class Board {
     this.playingTeam = playingTeam; //A or B
     this.currentRoll = 2;
     this.turnState = 2;
-    this.score = [0,0]
+    this.score = [0,0];
 
     //Board logistics
     this.magazines = [document.getElementById("opponent-magazine").children[0].children[0], document.getElementById("self-magazine").children[0].children[0]];
@@ -120,7 +136,7 @@ class Board {
       if(this.detTeam(this.currentGuide) == 0){
         this.masterList[this.currentGuide].children[0].innerHTML = "";
       } else if(this.detTeam(this.currentGuide) == "N"){
-        this.masterList[this.currentGuide].innerHTML = ""
+        this.masterList[this.currentGuide].innerHTML = "";
       }
     }
   }
@@ -187,15 +203,20 @@ class Board {
   }
 
   update(summary){
-    //Summary is 24 item array
-    this.resetBoard();
-    for(const s in summary){
-      if(summary[s] != "N"){
-        let team = summary[s] == this.playingTeam ? 1 : 0;
-        this.placePiece(team, s);
-        //Remove one piece from magazine
-        this.magazines[team].removeChild(this.magazines[team].children[0]);
+    if(summary != []){
+      //Summary is 24 item array
+      this.resetBoard();
+      for(const s in summary){
+        if(summary[s] != "N"){
+          let team = summary[s] == this.playingTeam ? 1 : 0;
+          this.placePiece(team, s);
+          //Remove one piece from magazine
+          this.magazines[team].removeChild(this.magazines[team].children[0]);
+        }
       }
+    } else {
+      //First move of the game
+      this.resetBoard();
     }
   }
 
@@ -211,15 +232,15 @@ class Board {
       }
     }
     //Reset magazines
-    board.magazines[0].innerHTML = "";
-    board.magazines[1].innerHTML = "";
+    this.magazines[0].innerHTML = "";
+    this.magazines[1].innerHTML = "";
     let newPiece;
     for(let i = 0; i < 2; i++){
       for(let j = 0; j < this.pieceNumber - this.score[i]; j++){
         newPiece = document.createElement("th");
         newPiece.className = "magazine-piece";
         newPiece.style["background-color"] = this.teamColors[i]
-        board.magazines[i].appendChild(newPiece);
+        this.magazines[i].appendChild(newPiece);
       }
     }
   }
@@ -252,21 +273,26 @@ class Board {
 }
 
 document.getElementById("board").addEventListener("click", (event) => {
-  if(event.target.className.indexOf("board-square") > -1){
+  if(game.hasStarted && game.myTurn){
+    if(event.target.className.indexOf("board-square") > -1){
 
-  } else if (event.target.className == "piece"){
-    //Show Guide
-    board.placeGuide(board.detLocation(event.target.parentNode), board.currentRoll);
-  } else if (event.target.className == "guide-self" || event.target.className == "guide-opp") {
-    board.makeMove();
+    } else if (event.target.className == "piece"){
+      //Show Guide
+      game.board.placeGuide(game.board.detLocation(event.target.parentNode), game.board.currentRoll);
+    } else if (event.target.className == "guide-self" || event.target.className == "guide-opp") {
+      game.board.makeMove();
+    }
   }
 });
 
 document.getElementById("self-magazine").addEventListener("click", (event) => {
-  board.placeGuide(-1, board.currentRoll);
+  if(game.hasStarted && game.myTurn){
+    game.board.placeGuide(-1, game.board.currentRoll);
+    game.finishTurn();
+  }
 });
 
-var board = new Board(playingTeam);
-board.resetBoard();
+var game = new Game();
+
 //Arbitrary board setup for testing
 //board.update(["B", "N", "N", "B", "N", "N", "N", "B", "A", "B", "B", "A", "N", "N", "N", "A", "N", "A", "N", "N", "N", "N", "N", "A"])

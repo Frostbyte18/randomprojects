@@ -9,57 +9,55 @@
 
   <link rel="stylesheet" href="css/styles.css">
   <title>Ur-Online</title>
-  <script srch="/socket.io/socket.io.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 
 <body>
   <h1>The Royal Game of Ur</h1>
-    <div id="lobby" hidden>
-      <button id="join-game" onclick="requestGame">Click To Join A Game</button>
+    <div id="lobby">
       <div id="server-message"></div>
     </div>
 
-    <table id="opponent-magazine">
-      <tr>
-      </tr>
-    </table>
-    <table id="board">
-      <tr>
-        <th class="board-square board-repeat"></th>
-        <th class="board-square"></th>
-        <th class="board-square"></th>
-        <th class="board-square"></th>
-        <th class="board-spacer"></th>
-        <th class="board-spacer"></th>
-        <th class="board-square board-repeat"></th>
-        <th class="board-square"></th>
-      </tr>
-      <tr>
-        <th class="board-square"></th>
-        <th class="board-square"></th>
-        <th class="board-square"></th>
-        <th class="board-square board-repeat"></th>
-        <th class="board-square"></th>
-        <th class="board-square"></th>
-        <th class="board-square"></th>
-        <th class="board-square"></th>
-      </tr>
-      <tr>
-        <th class="board-square board-repeat"></th>
-        <th class="board-square"></th>
-        <th class="board-square"></th>
-        <th class="board-square"></th>
-        <th class="board-spacer"></th>
-        <th class="board-spacer"></th>
-        <th class="board-square board-repeat"></th>
-        <th class="board-square"></th>
-      </tr>
-    </table>
-    <table id="self-magazine">
-      <tr>
-
-      </tr>
-    </table>
+    <div id="main-playing-div">
+      <table id="opponent-magazine">
+        <tr></tr>
+      </table>
+      <table id="board">
+        <tr>
+          <th class="board-square board-repeat"></th>
+          <th class="board-square"></th>
+          <th class="board-square"></th>
+          <th class="board-square"></th>
+          <th class="board-spacer"></th>
+          <th class="board-spacer"></th>
+          <th class="board-square board-repeat"></th>
+          <th class="board-square"></th>
+        </tr>
+        <tr>
+          <th class="board-square"></th>
+          <th class="board-square"></th>
+          <th class="board-square"></th>
+          <th class="board-square board-repeat"></th>
+          <th class="board-square"></th>
+          <th class="board-square"></th>
+          <th class="board-square"></th>
+          <th class="board-square"></th>
+        </tr>
+        <tr>
+          <th class="board-square board-repeat"></th>
+          <th class="board-square"></th>
+          <th class="board-square"></th>
+          <th class="board-square"></th>
+          <th class="board-spacer"></th>
+          <th class="board-spacer"></th>
+          <th class="board-square board-repeat"></th>
+          <th class="board-square"></th>
+        </tr>
+      </table>
+      <table id="self-magazine">
+        <tr></tr>
+      </table>
+    </div>
     <script type="text/javascript" src="js/index.js"></script>
 </body>
 </html>
