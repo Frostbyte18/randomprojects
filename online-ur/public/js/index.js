@@ -6,28 +6,31 @@ var socket = io();
 class Game {
   //This is the game from a player's perspective
   //Game is created when the document is loaded, but not started until confirmation is received from server
-  constructor(playingTeam){
+
+  constructor(){
     this.hasStarted = false;
     this.myTurn = false;
-    this.playingTeam = playingTeam;
-    this.board = new Board(this.playingTeam);
-    this.board.resetBoard();
+    this.board = new Board();
   }
 
   startGame(actualPlayer){
-    this.actualPlayer = actualPlayer;
+    this.board.actualPlayer = actualPlayer;
     this.hasStarted = true;
     document.getElementById("main-playing-div").style.visibility = "visible";
+    this.board.resetBoard();
   }
 
-  startTurn(roll, state){
+  startTurn(roll, state, score){
     this.myTurn = true;
     this.board.currentRoll = roll[0];
+    this.board.score = score;
     this.board.update(state);
   }
 
-  finishTurn(){
-      socket.emit("made-turn", [game.board.summarize]);
+  finishTurn(repeat){
+    game.board.makeMove();
+    socket.emit("made-turn", [game.board.summarize(), game.board.score, repeat]);
+    game.myTurn = repeat;
   }
 }
 
@@ -38,11 +41,15 @@ socket.on("start-game", (response) => {
 });
 
 socket.on("start-turn", response => {
-  game.startTurn(response[0], response[1]);
+  game.startTurn(response[0], response[1], response[2]); //(roll, state, score)
 });
 
 socket.on("server-message", response => {
   document.getElementById("server-message").innerHTML = response;
+});
+
+socket.on("update-board", response => {
+  game.board.update(response);
 });
 
 //
@@ -51,7 +58,6 @@ socket.on("server-message", response => {
 
 //Player will be assigned A or B which is common to both players
 //However, both teams will play from team 1's perspective
-var playingTeam = "A";
 
 function fixColor(color){
   let p = document.createElement("div");
@@ -60,24 +66,22 @@ function fixColor(color){
 }
 
 class Board {
-  constructor(playingTeam) {
+  constructor() {
     //Game configuration
     //this.teamColors = [fixColor("#00008B"), fixColor("#8B0000")];
     this.teamColors = [fixColor("blue"), fixColor("red")];
     this.pieceNumber = 7;
 
     //Gameplay mechanics
-    this.playingTeam = playingTeam; //A or B
+    this.actualPlayer = "N"; //A or B
     this.currentRoll = 2;
-    this.turnState = 2;
-    this.score = [0,0];
+    this.score = [0,0]; //[A, B]
 
     //Board logistics
     this.magazines = [document.getElementById("opponent-magazine").children[0].children[0], document.getElementById("self-magazine").children[0].children[0]];
     this.rows = Array.from(document.getElementById("board").children[0].children);
     this.lists = [this.createList(0), this.createList(1)];
     this.masterList = this.createList(2);
-    this.repeatSquares = [16, 11, 22];
     this.currentGuide = -1;
     this.currentClick = -1;
   }
@@ -186,6 +190,8 @@ class Board {
     this.masterList[location].innerHTML = "";
   }
 
+  flipPlayer(i){return i == "A" ? "B" : "A";}
+
   summarize(){ //Returns board summary (3x8 => 1x24)
     let a = [];
     let i = 0;
@@ -195,7 +201,12 @@ class Board {
           if(typeof square.children[0] == "undefined"){
             a.push("N");
           } else{
-            a.push(["B", "A"][this.teamColors.indexOf(square.children[0].style["background-color"])]);
+            let color = square.children[0].style["background-color"];
+            if(this.teamColors.indexOf(color) == 1){
+              a.push(this.actualPlayer);
+            } else{
+              a.push(this.flipPlayer(this.actualPlayer));
+            }
           }
       }
     }
@@ -208,7 +219,7 @@ class Board {
       this.resetBoard();
       for(const s in summary){
         if(summary[s] != "N"){
-          let team = summary[s] == this.playingTeam ? 1 : 0;
+          let team = summary[s] == this.actualPlayer ? 1 : 0;
           this.placePiece(team, s);
           //Remove one piece from magazine
           this.magazines[team].removeChild(this.magazines[team].children[0]);
@@ -218,10 +229,6 @@ class Board {
       //First move of the game
       this.resetBoard();
     }
-  }
-
-  updateScore(){
-
   }
 
   resetBoard(){
@@ -236,7 +243,10 @@ class Board {
     this.magazines[1].innerHTML = "";
     let newPiece;
     for(let i = 0; i < 2; i++){
-      for(let j = 0; j < this.pieceNumber - this.score[i]; j++){
+      let team = ["A", "B"].indexOf([this.flipPlayer(this.actualPlayer), this.actualPlayer][i]);
+      //Returns a 1 or a 0 that correspodns to A or B
+      let magazineNumber = this.pieceNumber - this.score[team];
+      for(let j = 0; j < magazineNumber; j++){
         newPiece = document.createElement("th");
         newPiece.className = "magazine-piece";
         newPiece.style["background-color"] = this.teamColors[i]
@@ -251,36 +261,33 @@ class Board {
       //Scoring move
       this.clearLocation(this.currentClick);
       this.masterList[21].innerHTML = "";
-      this.score[1] += 1;
+      let team = ["A", "B"].indexOf(this.actualPlayer);
+      this.score[team] += 1;
       this.currentGuide = -1;
     } else {
       //Normal move
       this.clearLocation(this.currentGuide);
       if(this.currentClick != -1){
+        //If the magazine wasn't clicked, remove old piece
         this.clearLocation(this.currentClick);
       }
       this.placePiece(1, this.currentGuide);
+      this.currentGuide = -1;
       this.update(this.summarize()); //Fix magazines
-    }
-
-    //Either end turn or request new move
-    if(this.repeatSquares.indexOf(this.currentGuide) != -1){
-      //Request new move
-    } else {
-      //End turn
     }
   }
 }
 
 document.getElementById("board").addEventListener("click", (event) => {
+  let target = event.target;
   if(game.hasStarted && game.myTurn){
-    if(event.target.className.indexOf("board-square") > -1){
-
-    } else if (event.target.className == "piece"){
+    if (target.className == "piece"){
       //Show Guide
-      game.board.placeGuide(game.board.detLocation(event.target.parentNode), game.board.currentRoll);
-    } else if (event.target.className == "guide-self" || event.target.className == "guide-opp") {
-      game.board.makeMove();
+      game.board.placeGuide(game.board.detLocation(target.parentNode), game.board.currentRoll);
+    } else if (target.className == "guide-self"){
+      game.finishTurn(target.parentNode.className.indexOf("board-repeat") > -1); //Pass whether or not it's a repeat
+    } else if (target.className == "guide-opp") {
+      game.finishTurn(target.parentNode.parentNode.className.indexOf("board-repeat") > -1); //Pass whether or not it's a repeat
     }
   }
 });
@@ -288,7 +295,6 @@ document.getElementById("board").addEventListener("click", (event) => {
 document.getElementById("self-magazine").addEventListener("click", (event) => {
   if(game.hasStarted && game.myTurn){
     game.board.placeGuide(-1, game.board.currentRoll);
-    game.finishTurn();
   }
 });
 

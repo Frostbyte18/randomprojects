@@ -13,6 +13,7 @@ const port = 3000;
 app.use(express.static('public'));
 
 const io = require('socket.io')(http);
+//io.pingInterval = 500;
 const serverNamespace = io.of("/");
 
 http.listen(3000, () => {
@@ -55,8 +56,8 @@ class Lobby{
     this.games.push(new Game(socketIdA, socketIdB));
 
     //Remove players from lobby
-    getSocket(socketIdA).leave("lobby");
-    getSocket(socketIdB).leave("lobby");
+    //getSocket(socketIdA).leave("lobby");
+    //getSocket(socketIdB).leave("lobby");
     delete this.lobbySockets[0];
     delete this.lobbySockets[1];
   }
@@ -71,9 +72,9 @@ class Lobby{
   }
 
   closeSocket(socketId){
-    if(this.lobbySockets.indexOf(socketId)){
+    if(this.lobbySockets.indexOf(socketId) > -1){
       delete this.lobbySockets[this.lobbySockets.indexOf(socketId)];
-    } else if (this.playerSockets.indexOf(socketId)) {
+    } else if (this.playerSockets.indexOf(socketId) > -1) {
       delete this.playerSockets[this.playerSockets.indexOf(socketId)];
     }
   }
@@ -84,15 +85,30 @@ class Game{
     //this.playerSockets = [socketA, socketB]; //Sockets of players
     this.playerIds = [socketA, socketB];
     this.state = [];
-    this.turn = "A"
+    this.score = [0, 0]; //A:B
+    this.turn = "A" //A or B
     this.players = ["A", "B"];
     this.gameId = socketA + socketB;
-
     this.startGame();
   }
 
-  flip(i){return i == "A" ? "B" : "A";}
+  //GAME FUNCTIONS (i.e. used by proccesses)
+  flipPlayer(i){return i == "A" ? "B" : "A";}
 
+  roll(){
+    /*let a = [0];
+    let s = 0;
+    for(let i = 0; i < 4; i++){
+      let r = Math.floor(Math.random() * 2);
+      a[0] += r;
+      a.push(r);
+    }
+    return a;*/
+    return [Math.floor(Math.random() * 5) + 1];
+  }
+
+  //GAME PROCCESSES (i.e. triggered by events)
+  //Ordered in code to represent game flow
   startGame(){
     console.log(`Starting game: ${this.gameId}`);
     io.to(this.playerIds[0]).emit("start-game", "A");
@@ -100,27 +116,38 @@ class Game{
     this.startTurn(this.playerIds[0]);
   }
 
-  roll(){
-    let a = [0];
-    let s = 0;
-    for(let i = 0; i < 4; i++){
-      let r = Math.floor(Math.random() * 2);
-      a[0] += r;
-      a.push(r);
-    }
-    return a;
-  }
-
-  proccessTurn(state, playerId){
-    if(true){ //Check it came from correct player
-      this.state = state;
-      this.turn = this.flip(this.turn);
-      this.startTurn(this.playerIds[this.players.indexOf(this.turn)]);
-    }
-  }
-
   startTurn(playerId){
-    io.to(playerId).emit("start-turn", [this.roll(), this.state]);
+    //playerId is a socketId
+    let roll = this.roll()
+
+    if(roll[0] == 0){
+      //Player doesn't get a turn
+      this.proccessTurn(this.state, this.score, playerId);
+      io.to(playerId).emit("server-message", `Sorry, you rolled a 0. You have to wait for your oppponent to go again`);
+    } else{
+      io.to(playerId).emit("server-message", `You rolled a ${roll[0]}!`);
+      io.to(playerId).emit("start-turn", [roll, this.state, this.score]);
+    }
+  }
+
+  proccessTurn(state, score, repeat, playerId){
+    function flipState(a){
+      //Reverses state so each player sees game from their perspective
+      return a.slice(16, 24).concat(a.slice(8,16)).concat(a.slice(0,8));
+    }
+
+    this.score = score;
+    if(repeat){
+      this.state = state;
+      io.to(this.playerIds[this.players.indexOf(this.flipPlayer(this.turn))]).emit("update-board", flipState(this.state));
+      io.to(this.playerIds[this.players.indexOf(this.flipPlayer(this.turn))]).emit("server-message", `Your opponent landed on a repeat square and gets to go again.`);
+      io.to(this.playerIds[this.players.indexOf(this.turn)]).emit("server-message", `You landed on a repeat square, go again!`);
+    } else{
+      this.state = flipState(state);
+      io.to(this.playerIds[this.players.indexOf(this.turn)]).emit("server-message", `Nice move! Waiting on your opponent`);
+      this.turn = this.flipPlayer(this.turn);
+    }
+    this.startTurn(this.playerIds[this.players.indexOf(this.turn)]);
   }
 }
 
@@ -141,7 +168,7 @@ io.on('connection', socket => {
   });
 
   socket.on("made-turn", response => {
-    socketGame.proccessTurn(response[0]);
+    socketGame.proccessTurn(response[0], response[1], response[2]);
   });
 
   socket.on('disconnect', () => {
