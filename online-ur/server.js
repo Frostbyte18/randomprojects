@@ -88,6 +88,7 @@ class Game{
     this.score = [0, 0]; //A:B
     this.turn = "A" //A or B
     this.players = ["A", "B"];
+    this.idDict = {"A" : socketA, "B" : socketB};
     this.gameId = socketA + socketB;
     this.startGame();
   }
@@ -96,15 +97,21 @@ class Game{
   flipPlayer(i){return i == "A" ? "B" : "A";}
 
   roll(){
-    /*let a = [0];
+    let a = [0];
     let s = 0;
     for(let i = 0; i < 4; i++){
       let r = Math.floor(Math.random() * 2);
       a[0] += r;
       a.push(r);
     }
-    return a;*/
-    return [Math.floor(Math.random() * 5) + 1];
+    return a;
+    //return [Math.floor(Math.random() * 5) + 1]; //Standard 6-sided dice rolling
+  }
+
+  sendMessage(message1, message2){ //A custom function to send messages to both players at once
+    //Message 1 -> current turn, Message 2 -> current waitibg
+    io.to(idDict(this.turn)).emit("server-message", message1);
+    io.to(idDict(this.flipPlayer(this.turn))).emit("server-message", message2);
   }
 
   //GAME PROCCESSES (i.e. triggered by events)
@@ -119,7 +126,6 @@ class Game{
   startTurn(playerId){
     //playerId is a socketId
     let roll = this.roll()
-
     if(roll[0] == 0){
       //Player doesn't get a turn
       this.proccessTurn(this.state, this.score, playerId);
