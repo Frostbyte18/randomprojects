@@ -1,6 +1,5 @@
 # randomprojects
-Different bits of projects that I work on from time to time
+Most of my code and smaller projects are in this repo to avoid cluttering my account with repos! Check it out for some cool stuff.
 
 I always have different ideas of quick projects that pop into my mind, and this is a place for me to keep track of all of them and their respective changes
 
-It's also a way for me to get more familiar with github, as I really haven't done much with it until recently
