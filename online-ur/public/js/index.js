@@ -34,22 +34,34 @@ class Game {
   }
 }
 
-socket.on("start-game", (response) => {
-  //Response will be a A or a B
-  game.startGame(response);
-  socket.emit("confirm-playing"); //Allow server to assign game id
-});
+socket.on("game-action", response => {
+  messageId = response[0];
+  messageData = response[1];
+  messageText = response[2];
+  switch (messageId) {
+    case "start-game":
+      game.startGame(messageData) //Passes actualPlayer
+      socket.emit("confirm-playing");
+      console.log(messageData);
+      break;
 
-socket.on("start-turn", response => {
-  game.startTurn(response[0], response[1], response[2]); //(roll, state, score)
-});
+    case "start-turn":
+      game.startTurn(messageData[0], messageData[1], messageData[2]); //(roll, state, score)
+      break;
 
-socket.on("server-message", response => {
-  document.getElementById("server-message").innerHTML = response;
-});
+    case "server-message":
+      break;
 
-socket.on("update-board", response => {
-  game.board.update(response);
+    case "update-board":
+      game.board.update(messageData);
+      break;
+      
+    default:
+      console.log("Unknown messageId: " + messageId);
+  }
+  if(messageText != "same-message"){
+    document.getElementById("server-message").innerHTML = messageText;
+  }
 });
 
 //
@@ -273,8 +285,8 @@ class Board {
       }
       this.placePiece(1, this.currentGuide);
       this.currentGuide = -1;
-      this.update(this.summarize()); //Fix magazines
     }
+    this.update(this.summarize()); //Fix magazines
   }
 }
 
@@ -285,9 +297,9 @@ document.getElementById("board").addEventListener("click", (event) => {
       //Show Guide
       game.board.placeGuide(game.board.detLocation(target.parentNode), game.board.currentRoll);
     } else if (target.className == "guide-self"){
-      game.finishTurn(target.parentNode.className.indexOf("board-repeat") > -1); //Pass whether or not it's a repeat
+      game.finishTurn(target.parentNode.className.indexOf("board-repeat") > -1 ? 1 : 0); //Pass whether or not it's a repeat
     } else if (target.className == "guide-opp") {
-      game.finishTurn(target.parentNode.parentNode.className.indexOf("board-repeat") > -1); //Pass whether or not it's a repeat
+      game.finishTurn(target.parentNode.parentNode.className.indexOf("board-repeat") > -1 ? 1 : 0); //Pass whether or not it's a repeat
     }
   }
 });

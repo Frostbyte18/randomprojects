@@ -62,6 +62,7 @@ class Lobby{
     delete this.lobbySockets[1];
   }
 
+  //"Admit" whether a given socket is in a game
   admitGame(socketId){
     for(const game of this.games){
       if(game.playerIds.indexOf(socketId) > -1){
@@ -108,31 +109,35 @@ class Game{
     //return [Math.floor(Math.random() * 5) + 1]; //Standard 6-sided dice rolling
   }
 
-  sendMessage(message1, message2){ //A custom function to send messages to both players at once
-    //Message 1 -> current turn, Message 2 -> current waitibg
-    io.to(idDict(this.turn)).emit("server-message", message1);
-    io.to(idDict(this.flipPlayer(this.turn))).emit("server-message", message2);
+  serverCommunication(socketId, messageId, messageData, messageText){ //Function for sending messages to a client
+    //Messages formatted as [messageId, ]
+    io.to(socketId).emit("game-action", [messageId, messageData, messageText]);
   }
 
   //GAME PROCCESSES (i.e. triggered by events)
   //Ordered in code to represent game flow
   startGame(){
     console.log(`Starting game: ${this.gameId}`);
-    io.to(this.playerIds[0]).emit("start-game", "A");
-    io.to(this.playerIds[1]).emit("start-game", "B");
-    this.startTurn(this.playerIds[0]);
+    this.serverCommunication(this.playerIds[0], "start-game", "A", "same-message");
+    this.serverCommunication(this.playerIds[1], "start-game", "B", "same-message");
+    this.startTurn(this.playerIds[0], false);
   }
 
-  startTurn(playerId){
+  startTurn(playerId, repeat){
     //playerId is a socketId
     let roll = this.roll()
     if(roll[0] == 0){
       //Player doesn't get a turn
-      this.proccessTurn(this.state, this.score, playerId);
-      io.to(playerId).emit("server-message", `Sorry, you rolled a 0. You have to wait for your oppponent to go again`);
-    } else{
-      io.to(playerId).emit("server-message", `You rolled a ${roll[0]}!`);
-      io.to(playerId).emit("start-turn", [roll, this.state, this.score]);
+      this.proccessTurn(this.state, this.score, 2, playerId);
+    } else {
+      //Roll wasn't a 0
+      let repeatMessage = "";
+      if(repeat == 1){
+        repeatMessage = "Congrats, you landed on a repeat square, go again! ";
+      } else if (repeat == 2) {
+        repeatMessage = "Congrats, your opponent rolled a 0, so you get to go again! ";
+      }
+      this.serverCommunication(playerId, "start-turn", [roll, this.state, this.score], `${repeatMessage}You rolled a ${roll[0]}!`);
     }
   }
 
@@ -143,17 +148,25 @@ class Game{
     }
 
     this.score = score;
-    if(repeat){
+    if(repeat == 1){ //If player ges to repeat their move
       this.state = state;
-      io.to(this.playerIds[this.players.indexOf(this.flipPlayer(this.turn))]).emit("update-board", flipState(this.state));
-      io.to(this.playerIds[this.players.indexOf(this.flipPlayer(this.turn))]).emit("server-message", `Your opponent landed on a repeat square and gets to go again.`);
-      io.to(this.playerIds[this.players.indexOf(this.turn)]).emit("server-message", `You landed on a repeat square, go again!`);
-    } else{
+      let recepient = this.playerIds[this.players.indexOf(this.flipPlayer(this.turn))];
+      this.serverCommunication(recepient, "update-board", flipState(this.state), "Your opponent landed on a repeat square and gets to go again");
+      this.startTurn(this.playerIds[this.players.indexOf(this.turn)], repeat);
+    } else if (repeat == 2) {
       this.state = flipState(state);
-      io.to(this.playerIds[this.players.indexOf(this.turn)]).emit("server-message", `Nice move! Waiting on your opponent`);
+      let recepient = this.playerIds[this.players.indexOf(this.turn)];
+      this.serverCommunication(recepient, "update-board", flipState(this.state), "Sorry, you rolled a 0 :(");
       this.turn = this.flipPlayer(this.turn);
+      this.startTurn(this.playerIds[this.players.indexOf(this.turn)], 2);
+    } else {
+      this.state = flipState(state);
+      let recepient = this.playerIds[this.players.indexOf(this.turn)];
+      this.serverCommunication(recepient, "server-message","", "Nice move! Waiting on your oppponent");
+      //Queue next player to move
+      this.turn = this.flipPlayer(this.turn);
+      this.startTurn(this.playerIds[this.players.indexOf(this.turn)], 0);
     }
-    this.startTurn(this.playerIds[this.players.indexOf(this.turn)]);
   }
 }
 
