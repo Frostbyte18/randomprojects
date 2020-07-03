@@ -10,13 +10,20 @@
     </style>
   </head>
   <body>
-    <div id="question-template">
-      <h4 class="question-text">What would you do in the event that you need to replace a flat tire</h4>
-      <div id="answer-body-template"><input id="answer-input-sample" type="radio" name="question" value="sample"><label id="sample-label" for="sample">sample</label><br></div>
-      <br>
-      <button id="next-question" type="button">Next</button>
+    <table>
+      <tbody>
+        <tr><td id="question-stage"></td></tr>
+        <tr><td><button id="next-question" type="button">Next</button></td></tr>
+      </tbody>
+    </table>
+    <div id="question-template" style="visibility:hidden">
+      <h4 class="question-text">Sample Question Text</h4>
+      <div class="answer-body-template"><input type="radio" name="" value="sample"><label for="sample">sample</label></div>
     </div>
 
+    <div id="question-holder" style="visibility:hidden">
+
+    </div>
     <script src="socialcompass.js" charset="utf-8"></script>
   </body>
 </html>
